@@ -63,7 +63,7 @@ We'll use the **tidyverse** package for much of the data wrangling and visualisa
 These packages are already installed for you.
 You can load them by running the following in your Console:
 
-```{r message = FALSE}
+```{r message = FALSE, eval = TRUE}
 library(tidyverse) 
 library(dsbox) 
 ```
@@ -79,7 +79,7 @@ You can also find this information [here](https://rstudio-education.github.io/ds
 
 To help with our analysis we will also use a dataset on US states, which is located in your repository's `data` folder.
 
-```{r}
+```{r read, eval = TRUE}
 states <- read_csv("data/states.csv")
 ```
 
@@ -107,7 +107,7 @@ We would like to limit our analysis to Denny's and La Quinta locations in the Un
     Are there any La Quinta's locations outside of the US?
     If so, which countries?
     What about Denny's?
-    `No, not that I can see for either.`
+    `Yes for La Quinta (Canada, Mexico, China, New Zealand, Georgia, Turkiye, United Arab Emirates, Colombia, and Ecuador) and Denny's (Mexico).`
 
 4.  Now take a look at the data.
     What would be some ways of determining whether or not either establishment has any locations outside the US using just the data (and not the websites).
@@ -119,14 +119,14 @@ We would like to limit our analysis to Denny's and La Quinta locations in the Un
 We will determine whether or not the establishment has a location outside the US using the `state` variable in the `dennys` and `laquinta` datasets.
 We know exactly which states are in the US, and we have this information in the `states` dataframe we loaded.
 
-5.  Find the Denny's locations that are outside the US, if any. To do so, filter the Denny's locations for observations where `state` is not in `states$abbreviation`. The code for this is given below. Note that the `%in%` operator matches the states listed in the `state` variable to those listed in `states$abbreviation`. The `!` operator means **not**. Are there any Denny's locations outside the US?
+5.  Find the Denny's locations that are outside the US, if any. To do so, filter the Denny's locations for observations where `state` is not in `states$abbreviation`. The code for this is given below. Note that the `%in%` operator matches the states listed in the `state` variable to those listed in `states$abbreviation`. The `!` operator means **not**. Are there any Denny's locations outside the US? `Not in this dataset.`
 
 ```{marginfigure}
 "Filter for `state`s that are not in `states$abbreviation`."
 ```
 
-```{r states}
-dennys %>%
+```{r states, eval = TRUE}
+dennys_international <- dennys %>%
   filter(!(state %in% states$abbreviation))
 ```
 
@@ -136,27 +136,33 @@ dennys %>%
 We don't need to tell R how many times to repeat the character string "United States" to fill in the data for all observations, R takes care of that automatically.
 ```
 
-```{r country}
-dennys %>%
+```{r country, eval = TRUE}
+dennys <- dennys %>%
   mutate(country = "United States")
 ```
 
 7.  Find the La Quinta locations that are outside the US, and figure out which country they are in.
     This might require some googling.
     Take notes, you will need to use this information in the next exercise.
+    `Canada, Mexico, China, New Zealand, Georgia, Turkiye, United Arab Emirates, Colombia, and Ecuador.`
+
+```{r countries, eval = TRUE}
+laquinta_international <- laquinta %>%
+  filter(!(state %in% states$abbreviation))
+``` 
 
 8.  Add a country variable to the La Quinta dataset.
     Use the `case_when` function to populate this variable.
     You'll need to refer to your notes from Exercise 7 about which country the non-US locations are in.
     Here is some starter code to get you going:
 
-```{r eval = FALSE}
+```{r laquinta-country, eval = TRUE}
 laquinta %>%
   mutate(country = case_when(
     state %in% state.abb     ~ "United States",
     state %in% c("ON", "BC") ~ "Canada",
     state == "ANT"           ~ "Colombia",
-    ...                      # fill in the rest
+    state %in% c("AG", "QR", "CH", "NL", "VE", "PU", "SL", "FM") ~"Mexico"
   ))
 ```
 
@@ -166,12 +172,37 @@ Going forward we will work with the data from the United States only.
 All Denny's locations are in the United States, so we don't need to worry about them.
 However we do need to filter the La Quinta dataset for locations in United States.
 
-```{r}
+```{r laquinta-usa, eval = TRUE}
 laquinta <- laquinta %>%
-  filter(country == "United States")
+  filter(state %in% states$abbreviation)
 ```
 
-9.  Which states have the most and fewest Denny's locations? What about La Quinta? Is this surprising? Why or why not?
+9.  Which states have the most and fewest Denny's locations? What about La Quinta? Is this surprising? Why or why not? `California has the most Denny's location, and Deleware has the fewest. Texas has the most La Quinta's, and Maine only has 1. This makes sense because of the relative populations and size of the states.`
+
+```{r location-frequency, eval = TRUE}
+dennys %>%
+  count(state) %>%
+  arrange(desc(n))
+```
+
+```{r location-frequency-min, eval = TRUE}
+dennys %>%
+  count(state) %>%
+  arrange(n)
+```
+
+```{r location-frequency-lq, eval = TRUE}
+laquinta %>%
+  count(state) %>%
+  arrange(desc(n))
+```
+
+
+```{r location-frequency-lq-min, eval = TRUE}
+laquinta %>%
+  count(state) %>%
+  arrange(n)
+```
 
 Next, let's calculate which states have the most Denny's locations *per thousand square miles*.
 This requires *joining* information from the frequency tables you created in Exercise 8 with information from the `states` data frame.
@@ -181,7 +212,7 @@ Then, we join this data frame with the `states` data frame.
 However note that the variables in the `states` data frame that has the two-letter abbreviations is called `abbreviation`.
 So when we're joining the two data frames we specify that the `state` variable from the Denny's data should be matched `by` the `abbreviation` variable from the `states` data:
 
-```{r}
+```{r join, eval = TRUE}
 dennys %>%
   count(state) %>%
   inner_join(states, by = c("state" = "abbreviation"))
@@ -192,11 +223,25 @@ In the next exercise you will need to build on this pipe.
 
 10. Which states have the most Denny's locations per thousand square miles? What about La Quinta?
 
+```{r join-Denny, eval = TRUE}
+dennys %>%
+  count(state) %>%
+  inner_join(states, by = c("state" = "abbreviation")) %>%
+  arrange(desc(n))
+```
+
+```{r join-LQ, eval = TRUE}
+laquinta %>%
+  count(state) %>%
+  inner_join(states, by = c("state" = "abbreviation")) %>%
+  arrange(desc(n))
+```
+
 Next, we put the two datasets together into a single data frame.
 However before we do so, we need to add an identifier variable.
 We'll call this `establishment` and set the value to `"Denny's"` and `"La Quinta"` for the `dennys` and `laquinta` data frames, respectively.
 
-```{r}
+```{r establishment, eval = TRUE}
 dennys <- dennys %>%
   mutate(establishment = "Denny's")
 laquinta <- laquinta %>%
@@ -205,16 +250,16 @@ laquinta <- laquinta %>%
 
 Since the two data frames have the same columns, we can easily bind them with the `bind_rows` function:
 
-```{r}
+```{r bind, eval = TRUE}
 dn_lq <- bind_rows(dennys, laquinta)
 ```
 
 We can plot the locations of the two establishments using a scatter plot, and color the points by the establishment type.
 Note that the latitude is plotted on the x-axis and the longitude on the y-axis.
 
-```{r}
+```{r graph, eval = TRUE}
 ggplot(dn_lq, mapping = aes(x = longitude, y = latitude, color = establishment)) +
-  geom_point()
+  geom_point(alpha= 0.5) 
 ```
 
 The following two questions ask you to create visualizations.
@@ -225,9 +270,27 @@ You can also choose different themes to change the overall look of your plots, s
 11. Filter the data for observations in North Carolina only, and recreate the plot.
     You should also adjust the transparency of the points, by setting the `alpha` level, so that it's easier to see the overplotted ones.
     Visually, does Mitch Hedberg's joke appear to hold here?
+    
+```{r graph-NC, eval = TRUE}
+dn_lq %>%
+  filter(state == "NC") %>%
+  ggplot(dn_lq, mapping = aes(x = longitude, y = latitude, color = establishment)) +
+  geom_point(alpha= 0.5) 
+```
+
+`The joke does seem to hold. For the La Quinta locations, they are fairly close to a Denny's. Not all Denny's are close to a La Quinta, though.`
 
 12. Now filter the data for observations in Texas only, and recreate the plot, with an appropriate `alpha` level.
     Visually, does Mitch Hedberg's joke appear to hold here?
+    
+```{r graph-TX, eval = TRUE}
+dn_lq %>%
+  filter(state == "TX") %>%
+  ggplot(dn_lq, mapping = aes(x = longitude, y = latitude, color = establishment)) +
+  geom_point(alpha= 0.5) 
+```
+
+`There are a LOT more La Quintas than Denny's here, located all on top of each other. They are definitely next to each other.`
 
 That's it for now!
 In the next lab we will take a more quantitative approach to answering these questions.
